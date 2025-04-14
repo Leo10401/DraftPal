@@ -197,34 +197,36 @@ export default function EmailGenerator() {
   }
   
   // New function for copying rich text format for email clients
-  const copyRichTextForEmail = () => {
-    if (!generatedEmail) return
-    
-    // Create a simple rich text version that email clients can handle
-    const richTextHtml = generateRichTextForEmailClients(generatedEmail, selectedTheme)
-    
-    // Create a temporary textarea element to copy the content
-    const tempDiv = document.createElement('div')
-    tempDiv.innerHTML = richTextHtml
-    document.body.appendChild(tempDiv)
-    
-    // Select the content
-    const range = document.createRange()
-    range.selectNodeContents(tempDiv)
-    
-    const selection = window.getSelection()
-    selection.removeAllRanges()
-    selection.addRange(range)
-    
-    // Copy the selection
-    document.execCommand('copy')
-    
-    // Clean up
-    selection.removeAllRanges()
-    document.body.removeChild(tempDiv)
-    
-    toast.success("Email content copied. You can now paste it directly into Gmail or other email clients.")
-  }
+// This function already exists in your code, but we need to make sure it's working correctly
+const copyRichTextForEmail = () => {
+  if (!generatedEmail) return;
+  
+  // Generate the rich text HTML with inline styles
+  const richTextHtml = generateRichTextForEmailClients(generatedEmail, selectedTheme);
+  
+  // Create a temporary element to copy the content
+  const tempDiv = document.createElement('div');
+  tempDiv.innerHTML = richTextHtml;
+  
+  document.body.appendChild(tempDiv);
+  
+  // Select the content
+  const range = document.createRange();
+  range.selectNodeContents(tempDiv);
+  
+  const selection = window.getSelection();
+  selection.removeAllRanges();
+  selection.addRange(range);
+  
+  // Copy the selection
+  document.execCommand('copy');
+  
+  // Clean up
+  selection.removeAllRanges();
+  document.body.removeChild(tempDiv);
+  
+  toast.success("Email content copied with background styles. You can now paste it directly into Gmail or other email clients.");
+};
   
   // Download the HTML file
   const downloadHtmlFile = () => {
@@ -246,34 +248,17 @@ export default function EmailGenerator() {
 
   // Creates a simplified rich text version that can be pasted into email clients
   const generateRichTextForEmailClients = (data, themeIndex) => {
-    const themeColors = themeIndex !== null ? colorThemes[themeIndex] : null
-    const primaryColor = themeColors ? themeColors[0] : data.accentColor
-    
+    const themeColors = themeIndex !== null ? colorThemes[themeIndex] : null;
+    const primaryColor = themeColors ? themeColors[0] : data.accentColor;
+    const buttonColor = themeColors ? themeColors[2] : data.accentColor;
+
+    const backgroundStyle = bgImage
+      ? `background-image: url(${bgImage}); background-size: cover; background-repeat: no-repeat;`
+      : `background-color: ${primaryColor};`;
+
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto;">
-        <div style="padding: 30px; background-color: ${
-          data.emailType === "business" || data.emailType === "corporate"
-            ? "#f7f7f7"
-            : data.emailType === "event"
-              ? "#f0f9f0"
-              : data.emailType === "realestate"
-                ? "#fff9f0"
-                : data.emailType === "confirmation"
-                  ? "#f0f7ff"
-                  : data.emailType === "newsletter"
-                    ? "#f8f5ff"
-                    : data.emailType === "welcome"
-                      ? "#fffbeb"
-                      : data.emailType === "product"
-                        ? "#eef2ff"
-                        : data.emailType === "promotion"
-                          ? "#fef2f2"
-                          : data.emailType === "thankyou"
-                            ? "#f0fdfa"
-                            : data.emailType === "holiday"
-                              ? "#f0f7ff"
-                              : "#f0f7ff"
-        };">
+      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; ${backgroundStyle}">
+        <div style="padding: 30px;">
           ${
             data.companyName
               ? `<div style="text-align: center; margin-bottom: 25px;">
@@ -285,18 +270,22 @@ export default function EmailGenerator() {
             </div>`
               : ""
           }
-          <h1 style="font-size: 24px; font-weight: bold; color: #333; ${data.emailType === "holiday" || data.emailType === "promotion" ? "text-align: center;" : ""}">${data.headerText}</h1>
-          <h2 style="font-size: 18px; color: #666; margin-top: 10px; ${data.emailType === "holiday" || data.emailType === "promotion" ? "text-align: center;" : ""}">${data.subheaderText}</h2>
-          <div style="margin-top: 20px; color: #444; line-height: 1.5; ${data.emailType === "holiday" ? "text-align: center;" : ""}">
+          <h1 style="font-size: 24px; font-weight: bold; color: #333; text-align: center;">${data.headerText}</h1>
+          <h2 style="font-size: 18px; color: #666; margin-top: 10px; text-align: center;">${data.subheaderText}</h2>
+          <div style="margin-top: 20px; color: #444; line-height: 1.5;">
             ${data.mainContent.replace(/\n/g, "<br/>")}
           </div>
-          <div style="text-align: center; margin-top: 25px;">
-            <a href="${data.ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: ${primaryColor}; color: white; text-decoration: none; border-radius: ${data.emailType === "event" || data.emailType === "promotion" ? "24px" : "4px"}; font-weight: 500;">${data.ctaText}</a>
+          <div style="text-align: center; margin-top: 25px; margin-bottom: 25px;">
+            <a href="${data.ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: ${buttonColor}; color: white; text-decoration: none; border-radius: ${data.emailType === "event" || data.emailType === "promotion" ? "24px" : "4px"}; font-weight: 500;">${data.ctaText}</a>
           </div>
-          ${data.footerText ? `<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #888; font-size: 12px; text-align: center;">${data.footerText}</div>` : ""}
+          ${
+            data.footerText
+              ? `<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #888; font-size: 12px; text-align: center;">${data.footerText}</div>`
+              : ""
+          }
         </div>
       </div>
-    `
+    `;
   }
 
   const generateHtmlCode = (data, themeIndex) => {
@@ -678,6 +667,20 @@ export default function EmailGenerator() {
             {generatedEmail && (
               <Card>
                 <CardContent className="p-0 overflow-hidden">
+                  <div className="bg-white p-4 border-b flex items-center justify-between">
+                    <h3 className="font-medium">Email Preview</h3>
+                    <div className="flex items-center gap-2">
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={copyRichTextForEmail}
+                        className="flex items-center gap-2"
+                      >
+                        <Mail className="h-4 w-4" />
+                        Copy for Email Client
+                      </Button>
+                    </div>
+                  </div>
                   <EmailPreview data={generatedEmail} selectedTheme={selectedTheme} bgImage={bgImage} />
                 </CardContent>
               </Card>
@@ -725,6 +728,29 @@ export default function EmailGenerator() {
           {generatedEmail ? (
             <Card className="mt-8">
               <CardContent className="p-0 overflow-hidden">
+                <div className="bg-white p-4 border-b flex items-center justify-between">
+                  <h3 className="font-medium">Email Preview</h3>
+                  <div className="flex items-center gap-2">
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={copyRichTextForEmail}
+                      className="flex items-center gap-2"
+                    >
+                      <Mail className="h-4 w-4" />
+                      Copy for Email Client
+                    </Button>
+                    <Button 
+                      variant="outline" 
+                      size="sm" 
+                      onClick={downloadHtmlFile}
+                      className="flex items-center gap-2"
+                    >
+                      <Download className="h-4 w-4" />
+                      Download HTML
+                    </Button>
+                  </div>
+                </div>
                 <EmailPreview data={generatedEmail} selectedTheme={selectedTheme} bgImage={bgImage} />
               </CardContent>
             </Card>
