@@ -1,3 +1,4 @@
+'use client';
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -14,17 +15,10 @@ import { cn } from "@/lib/utils"
 import EmailPreview from "@/components/email-preview"
 import { templates, colorThemes } from "@/lib/email-data"
 import { toast } from "react-hot-toast"
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
+
 
 // Initialize the Gemini API with your API key
-const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY || "AIzaSyBfnLaGKASmYcczhMHkLo8hIeh-nrCbclM")
+const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY)
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
 
 export default function EmailGenerator() {
