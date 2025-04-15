@@ -1,4 +1,4 @@
-'use client';
+"use client"
 import { GoogleGenerativeAI } from "@google/generative-ai"
 import { useState, useEffect } from "react"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
@@ -15,7 +15,6 @@ import { cn } from "@/lib/utils"
 import EmailPreview from "@/components/email-preview"
 import { templates, colorThemes } from "@/lib/email-data"
 import { toast } from "react-hot-toast"
-
 
 // Initialize the Gemini API with your API key
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY)
@@ -48,10 +47,10 @@ export default function EmailGenerator() {
     if (generatedEmail) {
       setGeneratedEmail({
         ...generatedEmail,
-        logoUrl: formData.logoUrl
-      });
+        logoUrl: formData.logoUrl,
+      })
     }
-  }, [formData.logoUrl]);
+  }, [formData.logoUrl])
 
   // Handle input changes for all form fields
   const handleChange = (name, value) => {
@@ -66,17 +65,17 @@ export default function EmailGenerator() {
         toast.error("File too large. Maximum size is 2MB.")
         return
       }
-  
+
       // Check file type
       if (!file.type.match("image.*")) {
         toast.error("Invalid file type. Please select an image file.")
         return
       }
-  
+
       const reader = new FileReader()
       reader.onload = (event) => {
         if (event.target?.result) {
-          console.log("Image loaded:", event.target.result.toString().substring(0, 50) + "...") 
+          console.log("Image loaded:", event.target.result.toString().substring(0, 50) + "...")
           setFormData((prev) => ({ ...prev, logoUrl: event.target.result.toString() }))
           setLogoPreview(event.target.result.toString())
         }
@@ -92,7 +91,7 @@ export default function EmailGenerator() {
       reader.onload = (event) => {
         if (event.target?.result) {
           setBgImage(event.target.result.toString())
-          toast.success("Background image uploaded successfully");
+          toast.success("Background image uploaded successfully")
         }
       }
       reader.readAsDataURL(file)
@@ -195,97 +194,147 @@ export default function EmailGenerator() {
 
     setTimeout(() => setCopied(false), 2000)
   }
-  
+
   // New function for copying rich text format for email clients
-// This function already exists in your code, but we need to make sure it's working correctly
-const copyRichTextForEmail = () => {
-  if (!generatedEmail) return;
-  
-  // Generate the rich text HTML with inline styles
-  const richTextHtml = generateRichTextForEmailClients(generatedEmail, selectedTheme);
-  
-  // Create a temporary element to copy the content
-  const tempDiv = document.createElement('div');
-  tempDiv.innerHTML = richTextHtml;
-  
-  document.body.appendChild(tempDiv);
-  
-  // Select the content
-  const range = document.createRange();
-  range.selectNodeContents(tempDiv);
-  
-  const selection = window.getSelection();
-  selection.removeAllRanges();
-  selection.addRange(range);
-  
-  // Copy the selection
-  document.execCommand('copy');
-  
-  // Clean up
-  selection.removeAllRanges();
-  document.body.removeChild(tempDiv);
-  
-  toast.success("Email content copied with background styles. You can now paste it directly into Gmail or other email clients.");
-};
-  
+  // This function already exists in your code, but we need to make sure it's working correctly
+  const copyRichTextForEmail = async () => {
+    if (!generatedEmail) return
+
+    // Generate the rich text HTML with inline styles
+    const richTextHtml = generateRichTextForEmailClients(generatedEmail, selectedTheme)
+
+    try {
+      // Use the modern Clipboard API
+      const type = "text/html"
+      const blob = new Blob([richTextHtml], { type })
+      const data = [new ClipboardItem({ [type]: blob })]
+
+      await navigator.clipboard.write(data)
+
+      if (formData.logoUrl) {
+        toast.success(
+          "Email content copied. Note: Images like logos won't appear when pasted into Gmail - you'll need to add them separately.",
+          { duration: 5000 },
+        )
+      } else {
+        toast.success("Email content copied. You can now paste it directly into Gmail or other email clients.")
+      }
+    } catch (err) {
+      console.error("Failed to copy: ", err)
+
+      // Fallback to the older method if the Clipboard API fails
+      const tempDiv = document.createElement("div")
+      tempDiv.innerHTML = richTextHtml
+      tempDiv.style.position = "absolute"
+      tempDiv.style.left = "-9999px"
+
+      document.body.appendChild(tempDiv)
+
+      const range = document.createRange()
+      range.selectNodeContents(tempDiv)
+
+      const selection = window.getSelection()
+      selection.removeAllRanges()
+      selection.addRange(range)
+
+      let success = false
+      try {
+        success = document.execCommand("copy")
+      } catch (err) {
+        console.error("Copy command failed: ", err)
+      }
+
+      selection.removeAllRanges()
+      document.body.removeChild(tempDiv)
+
+      if (success) {
+        if (formData.logoUrl) {
+          toast.success(
+            "Email content copied. Note: Images like logos won't appear when pasted into Gmail - you'll need to add them separately.",
+            { duration: 5000 },
+          )
+        } else {
+          toast.success("Email content copied. You can now paste it into your email client.")
+        }
+      } else {
+        toast.error("Failed to copy email content. Please try again or use the HTML code tab.")
+      }
+    }
+  }
+
   // Download the HTML file
   const downloadHtmlFile = () => {
     if (!generatedEmail) return
-    
+
     const htmlCode = generateHtmlCode(generatedEmail, selectedTheme)
-    const blob = new Blob([htmlCode], { type: 'text/html' })
+    const blob = new Blob([htmlCode], { type: "text/html" })
     const url = URL.createObjectURL(blob)
-    
-    const link = document.createElement('a')
+
+    const link = document.createElement("a")
     link.href = url
     link.download = `${formData.emailType}-email-template.html`
     document.body.appendChild(link)
     link.click()
     document.body.removeChild(link)
-    
+
     toast.success("HTML file downloaded successfully.")
   }
 
   // Creates a simplified rich text version that can be pasted into email clients
   const generateRichTextForEmailClients = (data, themeIndex) => {
-    const themeColors = themeIndex !== null ? colorThemes[themeIndex] : null;
-    const primaryColor = themeColors ? themeColors[0] : data.accentColor;
-    const buttonColor = themeColors ? themeColors[2] : data.accentColor;
+    const styles = templateStyles[data.emailType]
+    const themeColors = themeIndex !== null ? colorThemes[themeIndex] : null
+    const primaryColor = themeColors ? themeColors[0] : data.accentColor
+    const buttonColor = themeColors ? themeColors[2] : data.accentColor
+    const textColor = "#333333"
 
     const backgroundStyle = bgImage
-      ? `background-image: url(${bgImage}); background-size: cover; background-repeat: no-repeat;`
-      : `background-color: ${primaryColor};`;
+      ? `background-color: ${styles.backgroundColor || "#f7f7f7"};`
+      : themeColors
+        ? `background-color: ${themeColors[0]};`
+        : `background-color: ${styles.backgroundColor || "#f7f7f7"};`
+
+    // For Gmail, we'll use a colored div with text instead of an image for the logo
+    // since Gmail strips data URLs when pasting
+    const logoHtml = data.companyName
+      ? `<div style="text-align: center; margin-bottom: 25px;">
+        <div style="display: inline-block; width: 60px; height: 60px; background-color: ${
+          buttonColor || "#0ea5e9"
+        }; border-radius: 50%; line-height: 60px; text-align: center; font-size: 24px; font-weight: bold; color: white;">${data.companyName.charAt(
+          0,
+        )}</div>
+        ${data.companyName ? `<div style="margin-top: 8px; font-weight: bold;">${data.companyName}</div>` : ""}
+      </div>`
+      : ""
 
     return `
-      <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; ${backgroundStyle}">
-        <div style="padding: 30px;">
-          ${
-            data.companyName
-              ? `<div style="text-align: center; margin-bottom: 25px;">
-              ${
-                data.logoUrl
-                  ? `<img src="${data.logoUrl}" alt="${data.companyName}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">`
-                  : `<div style="display: inline-block; width: 60px; height: 60px; background-color: #ddd; border-radius: 50%; line-height: 60px; text-align: center; font-size: 24px; font-weight: bold;">${data.companyName.charAt(0)}</div>`
-              }
-            </div>`
-              : ""
-          }
-          <h1 style="font-size: 24px; font-weight: bold; color: #333; text-align: center;">${data.headerText}</h1>
-          <h2 style="font-size: 18px; color: #666; margin-top: 10px; text-align: center;">${data.subheaderText}</h2>
-          <div style="margin-top: 20px; color: #444; line-height: 1.5;">
-            ${data.mainContent.replace(/\n/g, "<br/>")}
-          </div>
-          <div style="text-align: center; margin-top: 25px; margin-bottom: 25px;">
-            <a href="${data.ctaUrl}" style="display: inline-block; padding: 12px 24px; background-color: ${buttonColor}; color: white; text-decoration: none; border-radius: ${data.emailType === "event" || data.emailType === "promotion" ? "24px" : "4px"}; font-weight: 500;">${data.ctaText}</a>
-          </div>
-          ${
-            data.footerText
-              ? `<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #888; font-size: 12px; text-align: center;">${data.footerText}</div>`
-              : ""
-          }
-        </div>
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 8px; ${backgroundStyle}">
+      ${logoHtml}
+      <h1 style="font-size: 24px; font-weight: bold; color: ${textColor}; ${
+        data.emailType === "holiday" || data.emailType === "promotion" ? "text-align: center;" : ""
+      }">${data.headerText}</h1>
+      <h2 style="font-size: 18px; color: #666; margin-top: 10px; ${
+        data.emailType === "holiday" || data.emailType === "promotion" ? "text-align: center;" : ""
+      }">${data.subheaderText}</h2>
+      <div style="margin-top: 20px; color: #444; line-height: 1.5; ${
+        data.emailType === "holiday" ? "text-align: center;" : ""
+      }">
+        ${data.mainContent.replace(/\n/g, "<br/>")}
       </div>
-    `;
+      <div style="text-align: center; margin-top: 25px; margin-bottom: 25px;">
+        <a href="${
+          data.ctaUrl
+        }" style="display: inline-block; padding: 12px 24px; background-color: ${buttonColor}; color: white; text-decoration: none; border-radius: ${
+          data.emailType === "event" || data.emailType === "promotion" ? "24px" : "4px"
+        }; font-weight: 500;">${data.ctaText}</a>
+      </div>
+      ${
+        data.footerText
+          ? `<div style="margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #888; font-size: 12px; text-align: center;">${data.footerText}</div>`
+          : ""
+      }
+    </div>
+  `
   }
 
   const generateHtmlCode = (data, themeIndex) => {
@@ -379,16 +428,16 @@ const copyRichTextForEmail = () => {
   <div class="container">
     <div class="email-${data.emailType}">
     ${
-        data.companyName
-          ? `<div style="text-align: center; margin-bottom: 25px;">
+      data.companyName
+        ? `<div style="text-align: center; margin-bottom: 25px;">
         ${
           data.logoUrl
             ? `<img src="${data.logoUrl}" alt="${data.companyName}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">`
             : `<div style="display: inline-block; width: 60px; height: 60px; background-color: #ddd; border-radius: 50%; line-height: 60px; text-align: center; font-size: 24px; font-weight: bold;">${data.companyName.charAt(0)}</div>`
         }
       </div>`
-          : ""
-      }
+        : ""
+    }
       <h1 class="header">${data.headerText}</h1>
       <h2 class="subheader">${data.subheaderText}</h2>
       <div class="content">
@@ -488,12 +537,12 @@ const copyRichTextForEmail = () => {
                         {logoPreview && (
                           <div className="relative h-10 w-10 overflow-hidden rounded-md border">
                             <img
-                              src={logoPreview}
+                              src={logoPreview || "/placeholder.svg"}
                               alt="Company logo"
                               className="h-full w-full object-contain"
                               onError={(e) => {
-                                console.error("Logo preview failed to load");
-                                e.target.src = "/placeholder.svg";
+                                console.error("Logo preview failed to load")
+                                e.target.src = "/placeholder.svg"
                               }}
                             />
                           </div>
@@ -670,9 +719,9 @@ const copyRichTextForEmail = () => {
                   <div className="bg-white p-4 border-b flex items-center justify-between">
                     <h3 className="font-medium">Email Preview</h3>
                     <div className="flex items-center gap-2">
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
+                      <Button
+                        variant="outline"
+                        size="sm"
                         onClick={copyRichTextForEmail}
                         className="flex items-center gap-2"
                       >
@@ -731,21 +780,16 @@ const copyRichTextForEmail = () => {
                 <div className="bg-white p-4 border-b flex items-center justify-between">
                   <h3 className="font-medium">Email Preview</h3>
                   <div className="flex items-center gap-2">
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
+                    <Button
+                      variant="outline"
+                      size="sm"
                       onClick={copyRichTextForEmail}
                       className="flex items-center gap-2"
                     >
                       <Mail className="h-4 w-4" />
                       Copy for Email Client
                     </Button>
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={downloadHtmlFile}
-                      className="flex items-center gap-2"
-                    >
+                    <Button variant="outline" size="sm" onClick={downloadHtmlFile} className="flex items-center gap-2">
                       <Download className="h-4 w-4" />
                       Download HTML
                     </Button>
@@ -766,4 +810,67 @@ const copyRichTextForEmail = () => {
       </Tabs>
     </div>
   )
+}
+
+const templateStyles = {
+  business: {
+    backgroundColor: "#f7f7f7",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  event: {
+    backgroundColor: "#f0f9f0",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  realestate: {
+    backgroundColor: "#fff9f0",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  confirmation: {
+    backgroundColor: "#f0f7ff",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  newsletter: {
+    backgroundColor: "#f8f5ff",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  welcome: {
+    backgroundColor: "#fffbeb",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  product: {
+    backgroundColor: "#eef2ff",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  promotion: {
+    backgroundColor: "#fef2f2",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  thankyou: {
+    backgroundColor: "#f0fdfa",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
+  holiday: {
+    backgroundColor: "#f0f7ff",
+    headerColor: "#333",
+    subheaderColor: "#666",
+    contentColor: "#444",
+  },
 }
