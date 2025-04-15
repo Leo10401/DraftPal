@@ -213,8 +213,8 @@ export default function EmailGenerator() {
 
       if (formData.logoUrl) {
         toast.success(
-          "Email content copied. Note: Images like logos won't appear when pasted into Gmail - you'll need to add them separately.",
-          { duration: 5000 },
+          "Email content copied. NOTE: The logo will NOT appear when pasted into Gmail - you will need to add it manually after pasting.",
+          { duration: 6000 },
         )
       } else {
         toast.success("Email content copied. You can now paste it directly into Gmail or other email clients.")
@@ -250,8 +250,8 @@ export default function EmailGenerator() {
       if (success) {
         if (formData.logoUrl) {
           toast.success(
-            "Email content copied. Note: Images like logos won't appear when pasted into Gmail - you'll need to add them separately.",
-            { duration: 5000 },
+            "Email content copied. NOTE: The logo will NOT appear when pasted into Gmail - you will need to add it manually after pasting.",
+            
           )
         } else {
           toast.success("Email content copied. You can now paste it into your email client.")
@@ -294,15 +294,14 @@ export default function EmailGenerator() {
         ? `background-color: ${themeColors[0]};`
         : `background-color: ${styles.backgroundColor || "#f7f7f7"};`
 
-    // For Gmail, we'll use a colored div with text instead of an image for the logo
-    // since Gmail strips data URLs when pasting
+    // Use a styled text-based placeholder for the logo
     const logoHtml = data.companyName
       ? `<div style="text-align: center; margin-bottom: 25px;">
         <div style="display: inline-block; width: 60px; height: 60px; background-color: ${
           buttonColor || "#0ea5e9"
-        }; border-radius: 50%; line-height: 60px; text-align: center; font-size: 24px; font-weight: bold; color: white;">${data.companyName.charAt(
-          0,
-        )}</div>
+        }; border-radius: 50%; line-height: 60px; text-align: center; font-size: 24px; font-weight: bold; color: white;">
+          ${data.companyName.charAt(0).toUpperCase()}
+        </div>
         ${data.companyName ? `<div style="margin-top: 8px; font-weight: bold;">${data.companyName}</div>` : ""}
       </div>`
       : ""
@@ -311,8 +310,8 @@ export default function EmailGenerator() {
     <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; border-radius: 8px; ${backgroundStyle}">
       ${logoHtml}
       <h1 style="font-size: 24px; font-weight: bold; color: ${textColor}; ${
-        data.emailType === "holiday" || data.emailType === "promotion" ? "text-align: center;" : ""
-      }">${data.headerText}</h1>
+    data.emailType === "holiday" || data.emailType === "promotion" ? "text-align: center;" : ""
+  }">${data.headerText}</h1>
       <h2 style="font-size: 18px; color: #666; margin-top: 10px; ${
         data.emailType === "holiday" || data.emailType === "promotion" ? "text-align: center;" : ""
       }">${data.subheaderText}</h2>
@@ -325,8 +324,8 @@ export default function EmailGenerator() {
         <a href="${
           data.ctaUrl
         }" style="display: inline-block; padding: 12px 24px; background-color: ${buttonColor}; color: white; text-decoration: none; border-radius: ${
-          data.emailType === "event" || data.emailType === "promotion" ? "24px" : "4px"
-        }; font-weight: 500;">${data.ctaText}</a>
+    data.emailType === "event" || data.emailType === "promotion" ? "24px" : "4px"
+  }; font-weight: 500;">${data.ctaText}</a>
       </div>
       ${
         data.footerText
