@@ -12,13 +12,18 @@ exports.googleCallback = (req, res) => {
   try {
     const token = generateToken(req.user._id);
     
+    // Get the origin domain from the request
+    const origin = req.headers.origin;
+    const domain = origin ? new URL(origin).hostname : undefined;
+    
     res.cookie('token', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost'
+      // Only set domain for production
+      ...(process.env.NODE_ENV === 'production' && domain ? { domain } : {})
     });
     
     res.redirect(process.env.CLIENT_URL);

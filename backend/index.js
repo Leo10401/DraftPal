@@ -12,10 +12,13 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: ['https://draftpal.vercel.app', process.env.CLIENT_URL],
+  origin: process.env.NODE_ENV === 'production' 
+    ? ['https://draftpal.vercel.app', process.env.CLIENT_URL]
+    : true,
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
-  allowedHeaders: ['Content-Type', 'Authorization'],
+  allowedHeaders: ['Content-Type', 'Authorization', 'Accept', 'Origin', 'X-Requested-With'],
+  exposedHeaders: ['Set-Cookie'],
 }));
 
 app.use(cookieParser());
