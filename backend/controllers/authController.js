@@ -18,10 +18,11 @@ exports.googleCallback = (req, res) => {
     
     const token = generateToken(req.user._id);
     
-    // Set cookie
+    // Set cookie with SameSite and domain settings
     res.cookie('token', token, {
       httpOnly: true,
-      secure: process.env.NODE_ENV === 'production',
+      secure: true, // Always use secure in modern browsers
+      sameSite: 'none', // Required for cross-site cookie setting
       maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
     });
     

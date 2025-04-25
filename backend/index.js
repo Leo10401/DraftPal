@@ -13,10 +13,20 @@ const app = express();
 // Middleware
 app.use(cors({
   origin: process.env.CLIENT_URL,
-  credentials: true
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+  allowedHeaders: ['Content-Type', 'Authorization'],
+  exposedHeaders: ['set-cookie']
 }));
-app.use(express.json());
+
+// Configure cookie settings
 app.use(cookieParser());
+app.use((req, res, next) => {
+  res.cookie = res.cookie.bind(res);
+  next();
+});
+
+app.use(express.json());
 app.use(passport.initialize());
 
 // Connect to MongoDB

@@ -3,6 +3,9 @@
 import { createContext, useContext, useEffect, useState } from 'react';
 import axios from 'axios';
 
+// Configure axios defaults
+axios.defaults.withCredentials = true;
+
 const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
@@ -17,7 +20,13 @@ export const AuthProvider = ({ children }) => {
       try {
         const res = await axios.get(
           `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
-          { withCredentials: true }
+          { 
+            withCredentials: true,
+            headers: {
+              'Accept': 'application/json',
+              'Content-Type': 'application/json'
+            }
+          }
         );
         
         if (res.data.success) {
