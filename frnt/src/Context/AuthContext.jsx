@@ -6,72 +6,44 @@ import axios from 'axios';
 // Configure axios defaults
 axios.defaults.withCredentials = true;
 
-const AuthContext = createContext();
+export const AuthContext = createContext();
 
 export const useAuth = () => useContext(AuthContext);
 
 export const AuthProvider = ({ children }) => {
   const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
 
-  // Check if user is authenticated on mount and when URL changes
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const res = await axios.get(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
-          { 
-            withCredentials: true,
-            headers: {
-              'Accept': 'application/json',
-              'Content-Type': 'application/json'
-            }
+  const checkAuth = async () => {
+    try {
+      setError(null);
+      const res = await axios.get(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
+        {
+          withCredentials: true,
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
           }
-        );
-        
-        if (res.data.success) {
-          setUser(res.data.user);
         }
-      } catch (error) {
-        console.log('Not authenticated');
-        setUser(null);
-      } finally {
-        setLoading(false);
+      );
+      
+      if (res.data.success) {
+        setUser(res.data.user);
       }
-    };
+    } catch (error) {
+      console.error('Auth check failed:', error?.response?.data || error.message);
+      setUser(null);
+      setError(error?.response?.data?.message || 'Authentication failed');
+    } finally {
+      setLoading(false);
+    }
+  };
 
+  useEffect(() => {
     checkAuth();
   }, []);
-
-  // Listen for URL changes (for when user is redirected back after Google auth)
-  useEffect(() => {
-    const handleRouteChange = () => {
-      if (window.location.pathname === '/' && !user) {
-        const checkAuth = async () => {
-          try {
-            const res = await axios.get(
-              `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
-              { withCredentials: true }
-            );
-            
-            if (res.data.success) {
-              setUser(res.data.user);
-            }
-          } catch (error) {
-            console.log('Auth check failed after route change');
-          }
-        };
-        
-        checkAuth();
-      }
-    };
-
-    // Run once on mount to check if we're already on dashboard
-    handleRouteChange();
-    
-    window.addEventListener('popstate', handleRouteChange);
-    return () => window.removeEventListener('popstate', handleRouteChange);
-  }, [user]);
 
   const logout = async () => {
     try {
@@ -90,7 +62,9 @@ export const AuthProvider = ({ children }) => {
   const value = {
     user,
     loading,
-    logout
+    error,
+    logout,
+    checkAuth // Export checkAuth to allow manual refresh
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

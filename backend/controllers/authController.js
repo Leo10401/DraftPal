@@ -10,23 +10,17 @@ const generateToken = (id) => {
 
 exports.googleCallback = (req, res) => {
   try {
-    // Log OAuth status for debugging
-    console.log("User saved with tokens:", { 
-      hasAccessToken: !!req.user.googleTokens?.access_token, 
-      hasRefreshToken: !!req.user.googleTokens?.refresh_token 
-    });
-    
     const token = generateToken(req.user._id);
     
-    // Set cookie with SameSite and domain settings
     res.cookie('token', token, {
       httpOnly: true,
-      secure: true, // Always use secure in modern browsers
-      sameSite: 'none', // Required for cross-site cookie setting
-      maxAge: 30 * 24 * 60 * 60 * 1000 // 30 days
+      secure: true,
+      sameSite: 'none',
+      maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
+      path: '/',
+      domain: process.env.NODE_ENV === 'production' ? '.onrender.com' : 'localhost'
     });
     
-    // Redirect to frontend home page
     res.redirect(process.env.CLIENT_URL);
   } catch (error) {
     console.error('Google callback error:', error);

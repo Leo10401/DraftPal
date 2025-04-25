@@ -12,22 +12,18 @@ const app = express();
 
 // Middleware
 app.use(cors({
-  origin: process.env.CLIENT_URL,
+  origin: ['https://draftpal.vercel.app', process.env.CLIENT_URL],
   credentials: true,
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   allowedHeaders: ['Content-Type', 'Authorization'],
-  exposedHeaders: ['set-cookie']
 }));
 
-// Configure cookie settings
 app.use(cookieParser());
-app.use((req, res, next) => {
-  res.cookie = res.cookie.bind(res);
-  next();
-});
-
 app.use(express.json());
 app.use(passport.initialize());
+
+// Enable trust proxy since we're behind a proxy on Render
+app.set('trust proxy', 1);
 
 // Connect to MongoDB
 mongoose.connect(process.env.MONGO_URI)
