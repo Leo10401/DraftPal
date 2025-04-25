@@ -15,10 +15,15 @@ import { cn } from "@/lib/utils"
 import EmailPreview from "@/components/email-preview"
 import { templates, colorThemes } from "@/lib/email-data"
 import { toast } from "react-hot-toast"
+import { CldUploadWidget } from 'next-cloudinary';
 
 // Initialize the Gemini API with your API key
 const genAI = new GoogleGenerativeAI(process.env.NEXT_PUBLIC_GEMINI_API_KEY)
 const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" })
+
+// Cloudinary configuration
+const CLOUD_NAME = process.env.NEXT_PUBLIC_CLOUDINARY_CLOUD_NAME;
+const UPLOAD_PRESET = process.env.NEXT_PUBLIC_CLOUDINARY_UPLOAD_PRESET;
 
 export default function EmailGenerator() {
   const [formData, setFormData] = useState({
@@ -57,32 +62,18 @@ export default function EmailGenerator() {
     setFormData((prev) => ({ ...prev, [name]: value }))
   }
 
-  const handleImageUpload = (e) => {
-    const file = e.target.files?.[0]
-    if (file) {
-      // Check file size (max 2MB)
-      if (file.size > 2 * 1024 * 1024) {
-        toast.error("File too large. Maximum size is 2MB.")
-        return
-      }
-
-      // Check file type
-      if (!file.type.match("image.*")) {
-        toast.error("Invalid file type. Please select an image file.")
-        return
-      }
-
-      const reader = new FileReader()
-      reader.onload = (event) => {
-        if (event.target?.result) {
-          console.log("Image loaded:", event.target.result.toString().substring(0, 50) + "...")
-          setFormData((prev) => ({ ...prev, logoUrl: event.target.result.toString() }))
-          setLogoPreview(event.target.result.toString())
-        }
-      }
-      reader.readAsDataURL(file)
+  const handleImageUpload = (result) => {
+    try {
+      const imageUrl = result.info.secure_url;
+      console.log("Cloudinary upload successful:", imageUrl);
+      setFormData((prev) => ({ ...prev, logoUrl: imageUrl }));
+      setLogoPreview(imageUrl);
+      toast.success("Logo uploaded successfully");
+    } catch (error) {
+      console.error("Error uploading to Cloudinary:", error);
+      toast.error("Failed to upload image. Please try again.");
     }
-  }
+  };
 
   const handleBgUpload = (e) => {
     const file = e.target.files?.[0]
@@ -393,6 +384,16 @@ export default function EmailGenerator() {
       line-height: 1.5;
       ${data.emailType === "holiday" ? "text-align: center;" : ""}
     }
+    .logo-container {
+      text-align: center;
+      margin-bottom: 25px;
+    }
+    .logo {
+      width: 60px;
+      height: 60px;
+      border-radius: 50%;
+      object-fit: cover;
+    }
     .cta-button { 
       display: inline-block; 
       padding: 12px 24px; 
@@ -404,46 +405,29 @@ export default function EmailGenerator() {
       margin-top: 25px;
     }
     .footer { margin-top: 30px; padding-top: 20px; border-top: 1px solid #ddd; color: #888; font-size: 12px; text-align: center; }
-    ${
-      data.emailType === "holiday"
-        ? '.email-holiday { background-image: url("https://via.placeholder.com/600x100/e3f2fd/e3f2fd"); background-repeat: repeat-x; background-position: top; }'
-        : ""
-    }
-    ${data.emailType === "newsletter" ? ".email-newsletter { border-top: 4px solid #9333ea; }" : ""}
-    ${
-      data.emailType === "product"
-        ? ".email-product { border-left: 4px solid #4f46e5; border-right: 4px solid #4f46e5; }"
-        : ""
-    }
-    ${
-      data.emailType === "thankyou"
-        ? ".email-thankyou { border-top: 4px solid #14b8a6; border-bottom: 4px solid #14b8a6; }"
-        : ""
-    }
-    ${data.emailType === "promotion" ? ".cta-button { font-size: 18px; font-weight: bold; }" : ""}
   </style>
 </head>
 <body>
   <div class="container">
     <div class="email-${data.emailType}">
-    ${
-      data.companyName
-        ? `<div style="text-align: center; margin-bottom: 25px;">
-        ${
-          data.logoUrl
-            ? `<img src="${data.logoUrl}" alt="${data.companyName}" style="width: 60px; height: 60px; border-radius: 50%; object-fit: cover;">`
-            : `<div style="display: inline-block; width: 60px; height: 60px; background-color: #ddd; border-radius: 50%; line-height: 60px; text-align: center; font-size: 24px; font-weight: bold;">${data.companyName.charAt(0)}</div>`
-        }
-      </div>`
-        : ""
-    }
+      ${data.logoUrl ? `
+      <div class="logo-container">
+        <img src="${data.logoUrl}" alt="${data.companyName || 'Company Logo'}" class="logo">
+      </div>
+      ` : data.companyName ? `
+      <div class="logo-container">
+        <div style="display: inline-block; width: 60px; height: 60px; background-color: ${primaryColor}; border-radius: 50%; line-height: 60px; text-align: center; font-size: 24px; font-weight: bold; color: white;">
+          ${data.companyName.charAt(0).toUpperCase()}
+        </div>
+      </div>
+      ` : ''}
       <h1 class="header">${data.headerText}</h1>
       <h2 class="subheader">${data.subheaderText}</h2>
       <div class="content">
         ${data.mainContent.replace(/\n/g, "<br/>")}
       </div>
       <div style="text-align: center;">
-        <a href="${data.ctaUrl}" class="cta-button" style="display: inline-block; padding: 12px 24px; background-color: ${primaryColor}; color: white; text-decoration: none; border-radius: ${data.emailType === "event" || data.emailType === "promotion" ? "24px" : "4px"}; font-weight: 500; margin-top: 25px;">${data.ctaText}</a>
+        <a href="${data.ctaUrl}" class="cta-button">${data.ctaText}</a>
       </div>
       ${data.footerText ? `<div class="footer">${data.footerText}</div>` : ""}
     </div>
@@ -475,7 +459,7 @@ export default function EmailGenerator() {
           </TabsTrigger>
         </TabsList>
 
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
+        <div className="grid grid-cols-3 lg:grid-cols-1 gap-8">
           <TabsContent value="design" className="mt-0">
             <Card>
               <CardContent className="p-6">
@@ -517,26 +501,33 @@ export default function EmailGenerator() {
                       <Label htmlFor="logo">Company Logo</Label>
                       <div className="mt-1.5 flex items-center gap-4">
                         <div className="relative">
-                          <Input
-                            id="logo"
-                            type="file"
-                            accept="image/*"
-                            onChange={handleImageUpload}
-                            className="sr-only"
-                          />
-                          <Button
-                            variant="outline"
-                            onClick={() => document.getElementById("logo")?.click()}
-                            className="flex items-center gap-2"
+                          <CldUploadWidget
+                            uploadPreset={UPLOAD_PRESET}
+                            onSuccess={handleImageUpload}
+                            options={{
+                              maxFiles: 1,
+                              maxFileSize: 2000000, // 2MB
+                              resourceType: "image",
+                              clientAllowedFormats: ["image"]
+                            }}
                           >
-                            <Upload className="h-4 w-4" />
-                            <span>Upload</span>
-                          </Button>
+                            {({ open }) => (
+                              <Button
+                                type="button"
+                                variant="outline"
+                                onClick={() => open()}
+                                className="flex items-center gap-2"
+                              >
+                                <Upload className="h-4 w-4" />
+                                <span>Upload</span>
+                              </Button>
+                            )}
+                          </CldUploadWidget>
                         </div>
                         {logoPreview && (
                           <div className="relative h-10 w-10 overflow-hidden rounded-md border">
                             <img
-                              src={logoPreview || "/placeholder.svg"}
+                              src={logoPreview}
                               alt="Company logo"
                               className="h-full w-full object-contain"
                               onError={(e) => {
@@ -772,7 +763,7 @@ export default function EmailGenerator() {
         </div>
 
         {/* Preview always visible on desktop */}
-        <div className="hidden lg:block">
+        {/* <div className="hidden">
           {generatedEmail ? (
             <Card className="mt-8">
               <CardContent className="p-0 overflow-hidden">
@@ -805,7 +796,7 @@ export default function EmailGenerator() {
               </div>
             </div>
           )}
-        </div>
+        </div> */}
       </Tabs>
     </div>
   )
