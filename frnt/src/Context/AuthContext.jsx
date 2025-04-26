@@ -29,7 +29,9 @@ export const AuthProvider = ({ children }) => {
     if (typeof window !== 'undefined' && newToken) {
       localStorage.setItem('authToken', newToken);
       setToken(newToken);
+      return true;
     }
+    return false;
   };
 
   // Configure axios interceptor for token
@@ -42,9 +44,9 @@ export const AuthProvider = ({ children }) => {
     // Add token to all requests if available
     const interceptor = axios.interceptors.request.use(
       (config) => {
-        const token = getStoredToken();
-        if (token) {
-          config.headers.Authorization = `Bearer ${token}`;
+        const currentToken = getStoredToken();
+        if (currentToken) {
+          config.headers.Authorization = `Bearer ${currentToken}`;
         }
         return config;
       },
@@ -59,14 +61,24 @@ export const AuthProvider = ({ children }) => {
   const checkAuth = async () => {
     try {
       setError(null);
+      // Get current token from localStorage to ensure latest is used
+      const currentToken = getStoredToken();
+      
+      const headers = {
+        'Accept': 'application/json',
+        'Content-Type': 'application/json',
+      };
+      
+      // Add token to Authorization header if available
+      if (currentToken) {
+        headers.Authorization = `Bearer ${currentToken}`;
+      }
+      
       const res = await axios.get(
         `${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`,
         {
           withCredentials: true,
-          headers: {
-            'Accept': 'application/json',
-            'Content-Type': 'application/json',
-          }
+          headers
         }
       );
       
@@ -117,7 +129,8 @@ export const AuthProvider = ({ children }) => {
     loading,
     error,
     logout,
-    checkAuth // Export checkAuth to allow manual refresh
+    checkAuth, // Export checkAuth to allow manual refresh
+    saveToken // Export saveToken for auth-callback page
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

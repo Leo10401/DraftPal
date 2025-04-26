@@ -21,7 +21,8 @@ exports.googleCallback = (req, res) => {
       path: '/'
     });
     
-    res.redirect(process.env.CLIENT_URL);
+    // Redirect with token in URL for frontend to capture
+    res.redirect(`${process.env.CLIENT_URL}/auth-callback?token=${token}`);
   } catch (error) {
     console.error('Google callback error:', error);
     res.redirect(`${process.env.CLIENT_URL}/login?error=auth_failed`);
