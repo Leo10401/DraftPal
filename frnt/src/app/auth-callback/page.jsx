@@ -1,10 +1,11 @@
 'use client';
 
-import { useEffect } from 'react';
+import { useEffect, Suspense } from 'react';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { useAuth } from '@/Context/AuthContext';
 
-export default function AuthCallback() {
+// Create a separate client component to use the hooks
+function AuthCallbackClient() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const { checkAuth } = useAuth();
@@ -29,11 +30,25 @@ export default function AuthCallback() {
 
   // Simple loading state while processing
   return (
+    <div className="text-center">
+      <h1 className="text-2xl mb-4">Completing authentication...</h1>
+      <div className="animate-pulse">Please wait</div>
+    </div>
+  );
+}
+
+// Main page component with Suspense
+export default function AuthCallback() {
+  return (
     <div className="flex justify-center items-center min-h-screen">
-      <div className="text-center">
-        <h1 className="text-2xl mb-4">Completing authentication...</h1>
-        <div className="animate-pulse">Please wait</div>
-      </div>
+      <Suspense fallback={
+        <div className="text-center">
+          <h1 className="text-2xl mb-4">Loading...</h1>
+          <div className="animate-pulse">Please wait</div>
+        </div>
+      }>
+        <AuthCallbackClient />
+      </Suspense>
     </div>
   );
 } 
