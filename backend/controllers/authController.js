@@ -18,8 +18,7 @@ exports.googleCallback = (req, res) => {
       secure: true,
       sameSite: 'none',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
-      path: '/',
-      domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
+      path: '/'
     });
     
     res.redirect(process.env.CLIENT_URL);
@@ -34,8 +33,7 @@ exports.logout = (req, res) => {
     httpOnly: true,
     secure: true,
     sameSite: 'none',
-    path: '/',
-    domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
+    path: '/'
   });
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
@@ -46,8 +44,13 @@ exports.getCurrentUser = async (req, res) => {
     if (!user) {
       return res.status(404).json({ message: 'User not found' });
     }
+    
+    // Generate a fresh token to return to the frontend
+    const token = generateToken(user._id);
+    
     res.status(200).json({
       success: true,
+      token, // Include token in response for frontend storage
       user: {
         id: user._id,
         email: user.email,
