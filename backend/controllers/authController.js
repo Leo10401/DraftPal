@@ -12,18 +12,14 @@ exports.googleCallback = (req, res) => {
   try {
     const token = generateToken(req.user._id);
     
-    // Get the origin domain from the request
-    const origin = req.headers.origin;
-    const domain = origin ? new URL(origin).hostname : undefined;
-    
+    // Set cookie with appropriate settings for cross-origin
     res.cookie('token', token, {
       httpOnly: true,
       secure: true,
       sameSite: 'none',
       maxAge: 30 * 24 * 60 * 60 * 1000, // 30 days
       path: '/',
-      // Only set domain for production
-      ...(process.env.NODE_ENV === 'production' && domain ? { domain } : {})
+      domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
     });
     
     res.redirect(process.env.CLIENT_URL);
@@ -34,7 +30,13 @@ exports.googleCallback = (req, res) => {
 };
 
 exports.logout = (req, res) => {
-  res.clearCookie('token');
+  res.clearCookie('token', {
+    httpOnly: true,
+    secure: true,
+    sameSite: 'none',
+    path: '/',
+    domain: process.env.NODE_ENV === 'production' ? '.vercel.app' : undefined
+  });
   res.status(200).json({ success: true, message: 'Logged out successfully' });
 };
 
@@ -51,7 +53,7 @@ exports.getCurrentUser = async (req, res) => {
         email: user.email,
         displayName: user.displayName,
         photo: user.photo,
-        hasRefreshToken: !!req.user.googleTokens?.refresh_token // Add this for client-side checking
+        hasRefreshToken: !!req.user.googleTokens?.refresh_token
       }
     });
   } catch (error) {
