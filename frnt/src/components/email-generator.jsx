@@ -459,7 +459,7 @@ export default function EmailGenerator() {
           </TabsTrigger>
         </TabsList>
 
-        <div className="grid grid-cols-3 lg:grid-cols-1 gap-8">
+        <div className="grid grid-cols-1 lg:grid-cols-1 gap-8">
           <TabsContent value="design" className="mt-0">
             <Card>
               <CardContent className="p-6">
